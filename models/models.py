@@ -11,12 +11,12 @@ class ODEfunc(nn.Module):
     def __init__(self,frictionless):
         super(ODEfunc, self).__init__()
 
-        self.omega = nn.Parameter(torch.tensor(2*3.1415 / 12))
+        self.omega = nn.Parameter(torch.rand(1))
 
         if frictionless:
             self.alpha = 0
         else:
-            self.alpha = nn.Parameter(torch.tensor(0.2))
+            self.alpha = nn.Parameter(torch.rand([1]))
 
     def forward(self,t,x):
         pos , vel = x[0][0],x[0][1]
@@ -43,7 +43,7 @@ class PendulumModel(nn.Module):
         self.physical = ODEfunc(frictionless)
 
     def forward(self,t,x):
-        if self.include_data:
+        if self.include_data:            
             return self.physical(t,x) + self.data_driven(x)
         else:
             return self.physical(t,x)
