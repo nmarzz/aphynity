@@ -1,1 +1,4 @@
-# aphynity
+# Aphynity
+
+An UNOFFICIAL implementation of APHYNITY from [AUGMENTING PHYSICAL MODELS WITH DEEP NETWORKS FOR COMPLEX DYNAMICS FORECASTING](https://arxiv.org/abs/2010.04456). 
+
