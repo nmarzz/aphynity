@@ -43,8 +43,8 @@ class PendulumModel(nn.Module):
 
 
 class PendulumModel2(nn.Module):
-    def __init__(self):
-        super(PendulumModel2, self,frictionless = True).__init__()
+    def __init__(self,frictionless = True):
+        super(PendulumModel2, self).__init__()
         self.frictionless = frictionless
         self.omega = nn.Parameter(torch.rand([1]))
 
