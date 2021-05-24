@@ -46,7 +46,7 @@ t = t.to(device)
 
 init_state = (train[0,0,0] ,train[0,0,1])
 print(init_state)
-optimizer = optim.SGD(model.parameters(), lr=0.1, momentum = 0.9)
+optimizer = optim.SGD(model.parameters(), lr=0.01, momentum = 0.9)
 
 
 
@@ -56,13 +56,14 @@ for i in range(5):
     pos_loss = pos - train[0,:,0]
     vel_loss = vel - train[0,:,1]
     loss = torch.sum(torch.sqrt(pos_loss ** 2 + vel_loss**2))
+    loss.backward()
+    optimizer.step()
+    
     print('*' * 20)
     print(loss)
     for name, param in model.named_parameters():
         if param.requires_grad:
             print(name, param.data)
-    loss.backward()
-    optimizer.step()
 
 
 
