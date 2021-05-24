@@ -23,12 +23,17 @@ class PendulumModel(nn.Module):
             )
 
     def forward(self,t,x):
-        pos,vel = x
+        pos,vel = x[:,0],x[:,1]
         dpos = vel
 
         if self.frictionless:
              dvel = -self.omega**2 * torch.sin(pos)
         else:
-             dvel = -self.omega**2 * torch.sin(pos) - self.alpha * vel        
+             dvel = -self.omega**2 * torch.sin(pos) - self.alpha * vel
 
-        return dpos,dvel
+        y = torch.stack((dpos,dvel),dim = 1)
+
+        if self.include_data:
+            y += self.data_driven(x)
+
+        return y

@@ -12,10 +12,10 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 t0 = 0.
 te = 20.
 t = torch.linspace(t0, te, 40).to(device)
-model = PendulumModel(frictionless = True,include_data = True).to(device)
+model = PendulumModel(frictionless = False,include_data = True).to(device)
 train,val,test = data_utils.get_pendulum_datasets(n=25)
 train,val,test = train.to(device),val.to(device),test.to(device)
-init_state = (train[:,0,0] ,train[:,0,1])
+init_state = train[:,0,:]
 
 
 # Define accessories
@@ -27,11 +27,14 @@ loss_function = torch.nn.MSELoss(reduction = 'sum')
 # TODO: Add testing loop
 for i in range(50):
     optimizer.zero_grad()
-    pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
-    pos = pos.transpose(0,1)
-    vel = vel.transpose(0,1)
+    print('Integrating')
+    sol = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+    pos = sol[:,:,0].transpose(0,1)
+    vel = sol[:,:,1].transpose(0,1)
     loss = loss_function(pos,train[:,:,0]) + loss_function(vel,train[:,:,1])
+    print('Backpropping')
     loss.backward()
+    print('Stepping')
     optimizer.step()
 
     # Track physical model parameters
