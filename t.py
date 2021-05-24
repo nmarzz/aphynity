@@ -7,7 +7,7 @@ from models.models import PendulumModel
 
 # Get environment
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+print(f'Training on {device}')
 # Define integration parameters
 t0 = 0.
 te = 20.
