@@ -50,25 +50,25 @@ optimizer = optim.Adam(model.parameters(), lr=0.03)
 
 
 #
-# for i in range(5):
-#     optimizer.zero_grad()
-#     pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
-#     pos_loss = pos - train[0,:,0]
-#     vel_loss = vel - train[0,:,1]
-#     loss = torch.sum(torch.sqrt(pos_loss ** 2 + vel_loss**2))
-#     loss.backward()
-#     optimizer.step()
+for i in range(5):
+    optimizer.zero_grad()
+    pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+    pos_loss = pos - train[0,:,0]
+    vel_loss = vel - train[0,:,1]
+    loss = torch.sum(torch.sqrt(pos_loss ** 2 + vel_loss**2))
+    loss.backward()
+    optimizer.step()
+
+    print('*' * 20)
+    print(loss)
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name, param.data)
+
+
 #
-#     print('*' * 20)
-#     print(loss)
-#     for name, param in model.named_parameters():
-#         if param.requires_grad:
-#             print(name, param.data)
-
-
-
-
-pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
-plt.plot(t,pos.detach())
-plt.plot(t,train[0,:,0])
-plt.show()
+#
+# pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+# plt.plot(t,pos.detach())
+# plt.plot(t,train[0,:,0])
+# plt.show()
