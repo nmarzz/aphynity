@@ -44,12 +44,22 @@ class PendulumModel(nn.Module):
 
 class PendulumModel2(nn.Module):
     def __init__(self):
-        super(PendulumModel2, self).__init__()
+        super(PendulumModel2, self,frictionless = True).__init__()
+        self.frictionless = frictionless
         self.omega = nn.Parameter(torch.rand([1]))
 
-    def forward(self,t,x):        
+        if not self.frictionless:
+            self.alpha = nn.Parameter(torch.rand([1]))
+
+    def forward(self,t,x):
         pos,vel = x
         dpos = vel
-        dvel = -self.omega**2 * torch.sin(pos)
+
+        if self.frictionless:
+             dvel = -self.omega**2 * torch.sin(pos)
+         else:
+             dvel = -self.omega**2 * torch.sin(pos) + self.alpha * vel
+
+
 
         return dpos,dvel
