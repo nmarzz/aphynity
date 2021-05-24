@@ -46,7 +46,7 @@ t = t.to(device)
 
 init_state = (train[0,0,0] ,train[0,0,1])
 print(init_state)
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.03)
 
 
 
