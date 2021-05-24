@@ -46,6 +46,7 @@ for i in range(5):
     pos_loss = pos - train[0,:,0]
     vel_loss = vel - train[0,:,1]
     loss = torch.sum(torch.sqrt(pos_loss ** 2 + vel_loss**2))
+    print(loss)
     loss.backward()
     optimizer.step()
 
