@@ -9,7 +9,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 model = PendulumModel2().to(device)
 train,val,test = data_utils.get_pendulum_datasets(n=1)
-train.to(device)
+
 
 
 t0 = 0.
@@ -39,9 +39,16 @@ def loss_fn(model,train):
 #     optimizer.step()
 
 
+
+
+train =train.to(device)
+t = t.to(device)
+
 init_state = (train[0,0,0] ,train[0,0,1])
 print(init_state)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum = 0.9)
+
+
 
 for i in range(5):
     optimizer.zero_grad()
