@@ -46,7 +46,8 @@ class PendulumModel2(nn.Module):
     def __init__(self,frictionless = True):
         super(PendulumModel2, self).__init__()
         self.frictionless = frictionless
-        self.omega = nn.Parameter(torch.rand([1]))
+        # self.omega = nn.Parameter(torch.rand([1]))
+        self.omega = nn.Parameter(torch.tensor(2.))
 
         if not self.frictionless:
             self.alpha = nn.Parameter(torch.rand([1]))
