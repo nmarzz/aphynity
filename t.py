@@ -27,11 +27,14 @@ loss_function = torch.nn.MSELoss(reduction = 'sum')
 # TODO: Add testing loop
 for i in range(50):
     optimizer.zero_grad()
+    print('Integrating')
     sol = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
     pos = sol[:,:,0].transpose(0,1)
     vel = sol[:,:,1].transpose(0,1)
     loss = loss_function(pos,train[:,:,0]) + loss_function(vel,train[:,:,1])
+    print('Backpropping')
     loss.backward()
+    print('Stepping')
     optimizer.step()
 
     # Track physical model parameters
