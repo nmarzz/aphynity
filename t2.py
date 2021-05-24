@@ -24,9 +24,9 @@ def loss_fn(model,train):
 
     return l2loss
 
-# for name, param in model.named_parameters():
-#     if param.requires_grad:
-#         print(name, param.data)
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(name, param.data)
 
 #
 # print('Training...')
@@ -60,6 +60,10 @@ for i in range(5):
     loss.backward()
     optimizer.step()
 
+
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(name, param.data)
 
 
 # plt.plot(t,pos.detach())
