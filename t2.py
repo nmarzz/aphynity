@@ -50,7 +50,7 @@ optimizer = optim.Adam(model.parameters(), lr=0.03)
 
 
 #
-for i in range(5):
+for i in range(10):
     optimizer.zero_grad()
     pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
     pos_loss = pos - train[0,:,0]
