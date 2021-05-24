@@ -6,47 +6,61 @@ from utils import data_utils
 from models.models import PendulumModel
 
 
-def loss_fn(model,train):
 
-    train = train.to(device)
-    output = odeint_adjoint(model, train[:,0,:], t, method='dopri5').transpose(0,1)
-    l2norm = torch.linalg.norm(output - train,dim = 2)
-    l2loss = torch.sum(l2norm)
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    Fa = model.data_driven(train)
-    fanorm = torch.linalg.norm(Fa,dim = 2)
-    faloss = torch.sum(fanorm)
+model = PendulumModel(frictionless = True,include_data = False).to(device)
+train,val,test = data_utils.get_pendulum_datasets(n=25)
 
-    return faloss + l2loss
+
 
 t0 = 0.
 te = 20.
 t = torch.linspace(t0, te, 40)
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def loss_fn(model,train):
+    train = train.to(device)
+    output = odeint_adjoint(model, (0,1), t, atol=1e-8, rtol=1e-8, method='dopri5').transpose(0,1)
+    l2norm = torch.linalg.norm(output - train,dim = 2)
+    l2loss = torch.sum(l2norm)
 
-train,val,test = data_utils.get_pendulum_datasets()
-model = PendulumModel(frictionless = True,include_data = True).to(device)
-output = odeint_adjoint(model, train[:,0,:], t, method='dopri5').transpose(0,1)
+    return l2loss
 
+train =train.to(device)
+t = t.to(device)
 
-# plt.plot(t,output[0,:,0].detach())
-# plt.plot(t,test[0,:,0])
-# plt.show()
-
-
-
-
+init_state = (train[:,0,0] ,train[:,0,1])
+print(init_state)
+optimizer = optim.Adam(model.parameters(), lr=0.03)
+loss_function = torch.nn.MSELoss(reduction = 'sum')
 
 
 
+pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+plt.plot(t,pos[:,0].detach())
+plt.plot(t,train[0,:,0])
+plt.show()
 
-# optimizer = optim.SGD(model.parameters(), lr=0.1, momentum = 0.9)
-#
-# print('Training...')
-# for i in range(5):
-#     print(f'Epoch {i}')
-#     optimizer.zero_grad()
-#     loss = loss_fn(model,train)
-#     loss.backward()
-#     optimizer.step()
+
+for i in range(50):
+    optimizer.zero_grad()
+    pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+    pos = pos.transpose(0,1)
+    vel = vel.transpose(0,1)
+    loss = loss_function(pos,train[:,:,0]) + loss_function(vel,train[:,:,1])
+    loss.backward()
+    optimizer.step()
+
+    print('*' * 20)
+    print(loss)
+    for name, param in model.named_parameters():
+        if param.requires_grad and name in ['omega','alpha']:
+            print(name, param.data)
+
+
+
+
+pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+plt.plot(t,pos[:,0].detach())
+plt.plot(t,train[0,:,0])
+plt.show()
