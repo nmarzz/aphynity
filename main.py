@@ -12,7 +12,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 t0 = 0.
 te = 20.
 t = torch.linspace(t0, te, 40).to(device)
-model = PendulumModel(frictionless = True,include_data = False).to(device)
+model = PendulumModel(frictionless = True,include_data = True).to(device)
 train,val,test = data_utils.get_pendulum_datasets(n=25)
 train,val,test = train.to(device),val.to(device),test.to(device)
 init_state = (train[:,0,0] ,train[:,0,1])
