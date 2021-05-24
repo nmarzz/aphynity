@@ -7,7 +7,7 @@ from models.models import PendulumModel
 
 # Get environment
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+print(f'Training on {device}')
 # Define integration parameters
 t0 = 0.
 te = 20.
@@ -19,33 +19,41 @@ init_state = train[:,0,:]
 
 
 # Define accessories
-optimizer = optim.Adam(model.parameters(), lr=0.03)
+optimizer = optim.Adam(model.parameters(), lr=0.002)
 loss_function = torch.nn.MSELoss(reduction = 'sum')
+
+sol = odeint_adjoint(model,init_state , t, atol=1e-4, rtol=1e-4,method='dopri5')
+pos = sol[:,:,0].transpose(0,1)
+vel = sol[:,:,1].transpose(0,1)
+# plt.plot(pos[0,:].detach())
+# plt.plot(train[0,:,0])
+# plt.show()
 
 
 # Training loop
 # TODO: Add testing loop
 for i in range(50):
     optimizer.zero_grad()
-    print('Integrating')
-    sol = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+    sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5')
     pos = sol[:,:,0].transpose(0,1)
     vel = sol[:,:,1].transpose(0,1)
-    loss = loss_function(pos,train[:,:,0]) + loss_function(vel,train[:,:,1])
+    loss = torch.sum(torch.linalg.norm(model.data_driven(train),dim=2)) + (loss_function(pos,train[:,:,0]) + loss_function(vel,train[:,:,1]))
     print('Backpropping')
     loss.backward()
-    print('Stepping')
     optimizer.step()
 
     # Track physical model parameters
     print('*' * 20)
+    print(f'Data contribution = {torch.sum(torch.linalg.norm(model.data_driven(train),dim=2))}')
+    print(f'loss contribution =  {(loss_function(pos,train[:,:,0]) + loss_function(vel,train[:,:,1]))}')
     print(loss)
     for name, param in model.named_parameters():
         if param.requires_grad and name in ['omega','alpha']:
             print(name, param.data)
 
-# Plot the end results
-pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
-plt.plot(t,pos[:,0].detach())
-plt.plot(t,train[0,:,0])
+sol = odeint_adjoint(model,init_state , t, atol=1e-4, rtol=1e-4,method='dopri5')
+pos = sol[:,:,0].transpose(0,1)
+vel = sol[:,:,1].transpose(0,1)
+plt.plot(pos[0,:].detach())
+plt.plot(train[0,:,0])
 plt.show()
