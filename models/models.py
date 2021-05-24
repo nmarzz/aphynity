@@ -57,7 +57,7 @@ class PendulumModel2(nn.Module):
 
         if self.frictionless:
              dvel = -self.omega**2 * torch.sin(pos)
-         else:
+        else:
              dvel = -self.omega**2 * torch.sin(pos) + self.alpha * vel
 
 
