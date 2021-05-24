@@ -56,14 +56,16 @@ for i in range(5):
     pos_loss = pos - train[0,:,0]
     vel_loss = vel - train[0,:,1]
     loss = torch.sum(torch.sqrt(pos_loss ** 2 + vel_loss**2))
+    print('*' * 20)
     print(loss)
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(name, param.data)
     loss.backward()
     optimizer.step()
 
 
-for name, param in model.named_parameters():
-    if param.requires_grad:
-        print(name, param.data)
+
 
 
 # plt.plot(t,pos.detach())
