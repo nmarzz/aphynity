@@ -5,10 +5,12 @@ import torch.optim as optim
 from utils import data_utils
 from models.models import PendulumModel2
 
+
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-model = PendulumModel2(frictionless = False).to(device)
-train,val,test = data_utils.get_pendulum_datasets(n=1)
+model = PendulumModel2(frictionless = True).to(device)
+train,val,test = data_utils.get_pendulum_datasets(n=25)
 
 
 
@@ -44,18 +46,25 @@ for name, param in model.named_parameters():
 train =train.to(device)
 t = t.to(device)
 
-init_state = (train[0,0,0] ,train[0,0,1])
+init_state = (train[:,0,0] ,train[:,0,1])
 print(init_state)
 optimizer = optim.Adam(model.parameters(), lr=0.03)
+loss_function = torch.nn.MSELoss(reduction = 'sum')
 
 
-#
+
+pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+plt.plot(t,pos[:,0].detach())
+plt.plot(t,train[0,:,0])
+plt.show()
+
+
 for i in range(50):
     optimizer.zero_grad()
     pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
-    pos_loss = pos - train[0,:,0]
-    vel_loss = vel - train[0,:,1]
-    loss = torch.sum(torch.sqrt(pos_loss ** 2 + vel_loss**2))
+    pos = pos.transpose(0,1)
+    vel = vel.transpose(0,1)
+    loss = loss_function(pos,train[:,:,0]) + loss_function(vel,train[:,:,1])
     loss.backward()
     optimizer.step()
 
@@ -66,9 +75,9 @@ for i in range(50):
             print(name, param.data)
 
 
-#
-#
-# pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
-# plt.plot(t,pos.detach())
-# plt.plot(t,train[0,:,0])
-# plt.show()
+
+
+pos,vel = odeint_adjoint(model,init_state , t, atol=1e-8, rtol=1e-8,method='dopri5')
+plt.plot(t,pos[:,0].detach())
+plt.plot(t,train[0,:,0])
+plt.show()
