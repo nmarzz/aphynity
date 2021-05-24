@@ -9,6 +9,9 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 model = PendulumModel2().to(device)
 train,val,test = data_utils.get_pendulum_datasets(n=1)
+train.to(device)
+
+
 t0 = 0.
 te = 20.
 t = torch.linspace(t0, te, 40)
