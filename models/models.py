@@ -39,9 +39,6 @@ class PendulumModel(nn.Module):
 
 
 
-
-
-
 class PendulumModel2(nn.Module):
     def __init__(self,frictionless = True):
         super(PendulumModel2, self).__init__()
@@ -59,7 +56,7 @@ class PendulumModel2(nn.Module):
         if self.frictionless:
              dvel = -self.omega**2 * torch.sin(pos)
         else:
-             dvel = -self.omega**2 * torch.sin(pos) + self.alpha * vel
+             dvel = -self.omega**2 * torch.sin(pos) - self.alpha * vel
 
 
 
