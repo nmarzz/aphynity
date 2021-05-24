@@ -46,7 +46,7 @@ t = t.to(device)
 
 init_state = (train[0,0,0] ,train[0,0,1])
 print(init_state)
-optimizer = optim.SGD(model.parameters(), lr=0.01, momentum = 0.9)
+optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 
 
@@ -58,7 +58,7 @@ for i in range(5):
     loss = torch.sum(torch.sqrt(pos_loss ** 2 + vel_loss**2))
     loss.backward()
     optimizer.step()
-    
+
     print('*' * 20)
     print(loss)
     for name, param in model.named_parameters():
