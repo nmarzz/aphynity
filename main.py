@@ -14,7 +14,7 @@ t0 = 0.
 te = 20.
 t = torch.linspace(t0, te, 40).to(device)
 model = PendulumModel(frictionless = True,include_data = True).to(device)
-batch_size = 25
+batch_size = 40
 train,val,test = data_utils.get_pendulum_datasets(n=batch_size)
 train,val,test = train.to(device),val.to(device),test.to(device)
 init_state = train[:,0,:]
@@ -28,7 +28,7 @@ loss_function = torch.nn.MSELoss(reduction = 'mean')
 # Training loop
 # TODO: Add testing loop
 lam = 1
-for i in range(1000):
+for i in range(2000):
     optimizer.zero_grad()
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
     data_loss = torch.sum(torch.linalg.norm(model.data_driven(train),dim=2)**2)
@@ -55,9 +55,13 @@ for i in range(1000):
 
 
 
-sol = odeint_adjoint(model,init_state , t, atol=1e-4, rtol=1e-4,method='dopri5')
-pos = sol[:,:,0].transpose(0,1)
-vel = sol[:,:,1].transpose(0,1)
-plt.plot(t,pos[0,:].detach())
-plt.plot(t,train[0,:,0])
-plt.show()
+
+
+torch.save(model,'model.pt')
+#
+# sol = odeint_adjoint(model,init_state , t, atol=1e-4, rtol=1e-4,method='dopri5')
+# pos = sol[:,:,0].transpose(0,1)
+# vel = sol[:,:,1].transpose(0,1)
+# plt.plot(t,pos[0,:].detach())
+# plt.plot(t,train[0,:,0])
+# plt.show()
