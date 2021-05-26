@@ -8,11 +8,11 @@ class PendulumModel(nn.Module):
         super(PendulumModel, self).__init__()
         self.frictionless = frictionless
         self.include_data = include_data
-        self.omega = nn.Parameter(torch.tensor(0.6))
+        self.omega = nn.Parameter(torch.rand(1))
 
 
         if not self.frictionless:
-            self.alpha = nn.Parameter(torch.tensor(0.15))
+            self.alpha = nn.Parameter(torch.rand(1))
 
         if self.include_data:
             self.data_driven = nn.Sequential(nn.Linear(2,200),

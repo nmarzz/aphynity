@@ -28,15 +28,17 @@ loss_function = torch.nn.MSELoss(reduction = 'mean')
 # Training loop
 # TODO: Add testing loop
 lam = 1
-for i in range(70):
+for i in range(1000):
     optimizer.zero_grad()
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
-    # data_loss = torch.sum(torch.linalg.norm(model.data_driven(train),dim=2)**2)
-    data_loss = 0
-    l2_loss = torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
+    data_loss = torch.sum(torch.linalg.norm(model.data_driven(train),dim=2)**2)
+    l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
     loss = data_loss + l2_loss
     loss.backward()
     optimizer.step()
+
+    if i % 5 ==0:
+        lam += 2
 
 
 
