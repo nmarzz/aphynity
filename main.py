@@ -43,7 +43,7 @@ for i in range(20):
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
 
     train.requires_grad = True
-    g = torch.autograd.grad(model.data_driven(train),train,grad_outputs = torch.ones(train.shape))[0]
+    g = torch.autograd.grad(model.data_driven(train),train,grad_outputs = torch.ones(train.shape).to(device))[0]
     data_loss = torch.sum(torch.linalg.norm(g,dim=2)**2)
     train.requires_grad = False
     data_loss += torch.sum(torch.linalg.norm(model.data_driven(train),dim=2)**2)
