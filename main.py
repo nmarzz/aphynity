@@ -31,7 +31,8 @@ lam = 1
 for i in range(2000):
     optimizer.zero_grad()
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
-    data_loss = torch.sum(torch.linalg.norm(model.data_driven(train),dim=2)**2)
+
+    data_loss = torch.sum(torch.linalg.norm(model.data_driven(t,train),dim=2)**2)
     l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
     loss = data_loss + l2_loss
     loss.backward()
@@ -58,7 +59,8 @@ for i in range(2000):
 
 
 torch.save(model,'model.pt')
-#
+
+
 # sol = odeint_adjoint(model,init_state , t, atol=1e-4, rtol=1e-4,method='dopri5')
 # pos = sol[:,:,0].transpose(0,1)
 # vel = sol[:,:,1].transpose(0,1)

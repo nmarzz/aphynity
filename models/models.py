@@ -15,12 +15,7 @@ class PendulumModel(nn.Module):
             self.alpha = nn.Parameter(torch.rand(1))
 
         if self.include_data:
-            self.data_driven = nn.Sequential(nn.Linear(2,200),
-            nn.ReLU(),
-            nn.Linear(200,200),
-            nn.ReLU(),
-            nn.Linear(200,2)
-            )
+            self.data_driven = DataDriven()
 
     def forward(self,t,x):
         pos,vel = x[:,0],x[:,1]
@@ -34,6 +29,20 @@ class PendulumModel(nn.Module):
         y = torch.stack((dpos,dvel),dim = 1)
 
         if self.include_data:
-            y += self.data_driven(x)
+            y += self.data_driven(t,x)
 
         return y
+
+class DataDriven(nn.Module):
+    def __init__(self):
+        super(DataDriven, self).__init__()
+
+        self.data_driven = nn.Sequential(nn.Linear(2,200),
+        nn.ReLU(),
+        nn.Linear(200,200),
+        nn.ReLU(),
+        nn.Linear(200,2)
+        )
+
+    def forward(self,t,x):
+        return self.data_driven(x)
