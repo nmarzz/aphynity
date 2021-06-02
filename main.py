@@ -43,7 +43,7 @@ for i in range(2000):
     optimizer.step()
 
     if i % 5 ==0:
-        lam += 2
+        lam += 0
 
 
 
