@@ -18,9 +18,7 @@ dt = te  / n
 t = torch.linspace(t0, te, n).to(device)
 model = PendulumModel(frictionless = True,include_data = True).to(device)
 batch_size = 20
-train,val,test = data_utils.get_pendulum_datasets(n=batch_size)
-train,val,test = train.to(device),val.to(device),test.to(device)
-init_state = train[:,0,:]
+
 
 
 # Define accessories
@@ -33,6 +31,10 @@ loss_function = torch.nn.MSELoss(reduction = 'mean')
 # TODO: Add testing loop
 lam = 1
 for i in range(50):
+    train,val,test = data_utils.get_pendulum_datasets(n=batch_size)
+    train,val,test = train.to(device),val.to(device),test.to(device)
+    init_state = train[:,0,:]
+    
     optimizer.zero_grad()
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
 
