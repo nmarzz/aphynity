@@ -38,7 +38,7 @@ def train():
 
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
     if include_neural_net:
-        data_loss = lam * torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
+        data_loss = torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
     else:
         data_loss = 0
     l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
@@ -57,10 +57,10 @@ def test():
     with torch.no_grad():
         sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
         if include_neural_net:
-            data_loss =  lam *torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
+            data_loss =  torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
         else:
             data_loss = 0
-        l2_loss = torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
+        l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
         loss = data_loss + l2_loss
         
     return loss, data_loss,l2_loss
@@ -97,8 +97,8 @@ for i in range(2000):
             break
 
     # Update lambda parameter
-    if epochs_since_last_improvement >= (patience //2):
-        lam += 2
+    # if epochs_since_last_improvement >= (patience //2):
+    #     lam += 2
 
 
 model.load_state_dict(best_model_weights)
