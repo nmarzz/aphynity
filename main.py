@@ -1,9 +1,11 @@
+from numpy.core.numeric import Inf
 import torch
 from torchdiffeq import odeint_adjoint
 import matplotlib.pyplot as plt
 import torch.optim as optim
 from utils import data_utils
-from models.models import PendulumModel
+from models import PendulumModel
+import copy
 
 # Get environment
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -13,57 +15,114 @@ print(f'Training on {device}')
 t0 = 0.
 te = 20.
 t = torch.linspace(t0, te, 40).to(device)
-model = PendulumModel(frictionless = True,include_data = True).to(device)
+include_neural_net = True
+model = PendulumModel(frictionless = True,include_neural_net = include_neural_net).to(device)
 batch_size = 40
-train,val,test = data_utils.get_pendulum_datasets(n=batch_size)
-train,val,test = train.to(device),val.to(device),test.to(device)
-init_state = train[:,0,:]
 
+# dynamical system parameters
+T0 = 12
+omega = 2 * 3.1415 / T0
+alpha = 0.35
+print(f'Expecting an omega of {omega}')
 
 # Define accessories
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-loss_function = torch.nn.MSELoss(reduction = 'mean')
 
 
-# Training loop
-# TODO: Add testing loop
-lam = 1
-for i in range(2000):
+def train():
+    model.train()
     optimizer.zero_grad()
+    train,val,test = data_utils.get_pendulum_datasets(n=batch_size,T0 = T0,alpha = alpha)
+    train,val,test = train.to(device),val.to(device),test.to(device)
+    init_state = train[:,0,:]
+
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
-
-    data_loss = torch.sum(torch.linalg.norm(model.data_driven(t,train),dim=2)**2)
-
+    if include_neural_net:
+        data_loss = lam * torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
+    else:
+        data_loss = 0
     l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
+    
     loss = data_loss + l2_loss
     loss.backward()
     optimizer.step()
 
-    if i % 5 ==0:
-        lam += 2
+
+def test():
+    model.eval()
+    train,val,test = data_utils.get_pendulum_datasets(n=batch_size,T0 = T0,alpha = alpha)
+    train,val,test = train.to(device),val.to(device),test.to(device)
+    init_state = train[:,0,:]
+    
+    with torch.no_grad():
+        sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
+        if include_neural_net:
+            data_loss =  lam *torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
+        else:
+            data_loss = 0
+        l2_loss = torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
+        loss = data_loss + l2_loss
+        
+    return loss, data_loss,l2_loss
 
 
+lam = 1
+patience = 40
+epochs_since_last_improvement = 0
+best_loss = Inf
+for i in range(2000):
+    train()
+    loss, data_loss,l2_loss = test()    
 
+    # Print training progress
     if i % 1 == 0:
         # Track physical model parameters
         print('*' * 20)
         print(f'iteration {i}')
         print(f'Data contribution = {data_loss}')
-        print(f'loss contribution =  {l2_loss}')
-        print(loss)
+        print(f'L2 contribution =  {l2_loss}')
+        print(f'Total loss = {loss}')
         for name, param in model.named_parameters():
             if param.requires_grad and name in ['omega','alpha']:
-                print(name, param.data)
+                print(f'{name} = {param.data.item()} ')
+
+    # Implement early stopping
+    if loss < best_loss:
+        best_loss = loss
+        best_model_weights = copy.deepcopy(model.state_dict())
+        epochs_since_last_improvement = 0
+    else:
+        epochs_since_last_improvement += 1
+        if epochs_since_last_improvement >= patience:
+            break
+
+    # Update lambda parameter
+    if epochs_since_last_improvement >= (patience //2):
+        lam += 2
 
 
+model.load_state_dict(best_model_weights)
+model = model.to('cpu')
+
+print('Final named parameter values are: ')
+for name, param in model.named_parameters():
+            if param.requires_grad and name in ['omega','alpha']:
+                print(f'{name} = {param.data.item()} ')
+
+
+train,val,test = data_utils.get_pendulum_datasets(n=batch_size,T0 = T0,alpha = alpha)
+train,val,test = train.to('cpu'),val.to('cpu'),test.to('cpu')
+init_state = train[:,0,:]
+
+t = t.to('cpu')
+sol = odeint_adjoint(model,init_state , t, atol=1e-4, rtol=1e-4,method='dopri5')
+pos = sol[:,:,0].transpose(0,1)
+vel = sol[:,:,1].transpose(0,1)
+plt.plot(t,pos[0,:].detach())
+plt.plot(t,train[0,:,0])
+plt.legend(['Learnt','True'])
+plt.savefig('final_result.png')
 
 
 
 torch.save(model,'model.pt')
-#
-# sol = odeint_adjoint(model,init_state , t, atol=1e-4, rtol=1e-4,method='dopri5')
-# pos = sol[:,:,0].transpose(0,1)
-# vel = sol[:,:,1].transpose(0,1)
-# plt.plot(t,pos[0,:].detach())
-# plt.plot(t,train[0,:,0])
-# plt.show()

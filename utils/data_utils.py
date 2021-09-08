@@ -15,8 +15,7 @@ From paper:
     noise (σ = 0.01) to the state. Note that our pendulum dataset is much more challenging than the
     ideal frictionless pendulum considered in Greydanus et al. (2019).
     '''
-    omega_0 = 2 * 3.1415 / T0
-    alpha = 0.2
+    omega_0 = 2 * 3.1415 / T0    
     time = np.arange(start = t0,stop = te,step =dt)
     ode = functools.partial(pendulum_ode,omega_0,alpha)
 
