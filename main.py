@@ -8,7 +8,8 @@ from models import PendulumModel
 import copy
 
 # Get environment
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
+# device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'Training on {device}')
 
 # Define integration parameters
@@ -17,7 +18,6 @@ te = 20.
 t = torch.linspace(t0, te, 40).to(device)
 include_neural_net = True
 model = PendulumModel(frictionless = True,include_neural_net = include_neural_net).to(device)
-batch_size = 40
 
 # dynamical system parameters
 T0 = 12
@@ -25,45 +25,54 @@ omega = 2 * 3.1415 / T0
 alpha = 0.35
 print(f'Expecting an omega of {omega}')
 
+# Get data
+batch_size = 25
+train,val,test = data_utils.get_pendulum_datasets(n=batch_size,T0 = T0,alpha = alpha)
+train,val,test = train.to(device),val.to(device),test.to(device)
+
+
+
+
 # Define accessories
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
-def train():
+def train_model():
     model.train()
     optimizer.zero_grad()
-    train,val,test = data_utils.get_pendulum_datasets(n=batch_size,T0 = T0,alpha = alpha)
-    train,val,test = train.to(device),val.to(device),test.to(device)
-    init_state = train[:,0,:]
 
+    # Calculate loss
+    init_state = train[:,0,:]
     sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
     if include_neural_net:
-        data_loss = torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
+        nn_loss = torch.sum(torch.linalg.norm(model.neural_net(t,train),dim=2)**2) / batch_size
     else:
-        data_loss = 0
+        nn_loss = 0
     l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
     
-    loss = data_loss + l2_loss
-    loss.backward()
+    loss = nn_loss + l2_loss
+    
+    # Apply backprop
+    loss.backward()    
     optimizer.step()
 
 
-def test():
-    model.eval()
-    train,val,test = data_utils.get_pendulum_datasets(n=batch_size,T0 = T0,alpha = alpha)
-    train,val,test = train.to(device),val.to(device),test.to(device)
-    init_state = train[:,0,:]
-    
+def test_model():
+    model.eval()        
     with torch.no_grad():
-        sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
-        if include_neural_net:
-            data_loss =  torch.linalg.norm(model.neural_net.state_dict()['neural_net.weight'])
-        else:
-            data_loss = 0
-        l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
-        loss = data_loss + l2_loss
+        # Get data        
+        init_state = test[:,0,:]
+        sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)        
         
-    return loss, data_loss,l2_loss
+        # Calculate loss
+        if include_neural_net:            
+            nn_loss =  torch.sum(torch.linalg.norm(model.neural_net(t,test),dim=2)**2) / batch_size
+        else:
+            nn_loss = 0
+        l2_loss = lam * torch.sum(torch.linalg.norm(sol - test,dim = 2)) / batch_size
+        loss = nn_loss + l2_loss
+        
+    return loss, nn_loss,l2_loss
 
 
 lam = 1
@@ -71,15 +80,15 @@ patience = 40
 epochs_since_last_improvement = 0
 best_loss = Inf
 for i in range(2000):
-    train()
-    loss, data_loss,l2_loss = test()    
+    train_model()
+    loss, nn_loss,l2_loss = test_model()    
 
     # Print training progress
     if i % 1 == 0:
         # Track physical model parameters
         print('*' * 20)
         print(f'iteration {i}')
-        print(f'Data contribution = {data_loss}')
+        print(f'Data contribution = {nn_loss}')
         print(f'L2 contribution =  {l2_loss}')
         print(f'Total loss = {loss}')
         for name, param in model.named_parameters():

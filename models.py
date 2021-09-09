@@ -8,7 +8,8 @@ class PendulumModel(nn.Module):
         super(PendulumModel, self).__init__()
         self.frictionless = frictionless
         self.include_neural_net = include_neural_net
-        self.omega = nn.Parameter(torch.rand(1))
+        # self.omega = nn.Parameter(torch.rand(1))
+        self.omega = nn.Parameter(torch.tensor(0.55))
 
 
         if not self.frictionless:
