@@ -25,36 +25,45 @@ omega = 2 * 3.1415 / T0
 alpha = 0.35
 print(f'Expecting an omega of {omega}')
 
+# Training process hyper-parameters
+tao_1 = 0.001
+tao_2 = 10
+n_iter = 5
+lamd = 1
+
 # Get data
 batch_size = 25
 train,val,test = data_utils.get_pendulum_datasets(n=batch_size,T0 = T0,alpha = alpha)
 train,val,test = train.to(device),val.to(device),test.to(device)
 
-
-
-
 # Define accessories
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.SGD(model.parameters(), lr=tao_1)
 
+def train_model(lamd):
+    model.train()            
 
-def train_model():
-    model.train()
-    optimizer.zero_grad()
+    for _ in range(n_iter):    
+        optimizer.zero_grad()
+        
+        init_state = train[:,0,:]
+        sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
+        if include_neural_net:
+            norm_fa = torch.sum(torch.linalg.norm(model.neural_net(t,train),dim=2)**2) / batch_size
+        else:
+            norm_fa = 0
+        
+        l_traj = torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
+        loss = lamd * l_traj + norm_fa
+        # Apply backprop
+        loss.backward(retain_graph = True)    
+        optimizer.step()
 
-    # Calculate loss
-    init_state = train[:,0,:]
-    sol = odeint_adjoint(model,init_state , t, atol=1e-2, rtol=1e-2,method='dopri5').transpose(0,1)
-    if include_neural_net:
-        nn_loss = torch.sum(torch.linalg.norm(model.neural_net(t,train),dim=2)**2) / batch_size
-    else:
-        nn_loss = 0
-    l2_loss = lam * torch.sum(torch.linalg.norm(sol - train,dim = 2)) / batch_size
+    return l_traj
     
-    loss = nn_loss + l2_loss
     
-    # Apply backprop
-    loss.backward()    
-    optimizer.step()
+    
+
+
 
 
 def test_model():
@@ -69,18 +78,19 @@ def test_model():
             nn_loss =  torch.sum(torch.linalg.norm(model.neural_net(t,test),dim=2)**2) / batch_size
         else:
             nn_loss = 0
-        l2_loss = lam * torch.sum(torch.linalg.norm(sol - test,dim = 2)) / batch_size
+        l2_loss = lamd * torch.sum(torch.linalg.norm(sol - test,dim = 2)) / batch_size
         loss = nn_loss + l2_loss
         
     return loss, nn_loss,l2_loss
 
 
-lam = 1
 patience = 40
 epochs_since_last_improvement = 0
 best_loss = Inf
 for i in range(2000):
-    train_model()
+    l_traj = train_model(lamd)
+    print(l_traj)
+    lamd += l_traj * tao_2
     loss, nn_loss,l2_loss = test_model()    
 
     # Print training progress
